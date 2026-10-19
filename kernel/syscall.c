@@ -101,6 +101,9 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
+extern uint64 sys_hello(void); // hello: declaration
+extern uint64 sys_sysinfo(void); // lab1 sysinfo
+extern uint64 sys_procinfo(void); // lab1 procinfo
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -126,7 +129,12 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_hello]   sys_hello,
+[SYS_sysinfo] sys_sysinfo,    // lab1 sysinfo
+[SYS_procinfo] sys_procinfo,  // lab1 procinfo
 };
+
+int syscall_count = 0; //lab1 part1 - param for counting system call
 
 void
 syscall(void)
@@ -136,6 +144,10 @@ syscall(void)
 
   num = p->trapframe->a7;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+    syscall_count++;
+    // Count syscall per process
+    p->syscall_cnt++;
+
     // Use num to lookup the system call function for num, call it,
     // and store its return value in p->trapframe->a0
     p->trapframe->a0 = syscalls[num]();
@@ -144,4 +156,9 @@ syscall(void)
             p->pid, p->name, num);
     p->trapframe->a0 = -1;
   }
+}
+
+// lab1 part1 - syscall counting
+int get_syscall_number(void){
+  return syscall_count - 1;
 }

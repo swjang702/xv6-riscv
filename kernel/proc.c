@@ -124,6 +124,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->syscall_cnt = 0;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -168,6 +169,7 @@ freeproc(struct proc *p)
   p->chan = 0;
   p->killed = 0;
   p->xstate = 0;
+  p->syscall_cnt= 0;
   p->state = UNUSED;
 }
 
@@ -680,4 +682,39 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+void
+print_hello(int n)
+{
+  printf("Hello from the kernel space %d\n", n);
+}
+
+//lab 1 part 1 - state count
+int get_active_process_number(void){
+  struct proc *p;
+  int count = 0;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->state == SLEEPING || p->state == RUNNABLE || p->state == RUNNING || p->state == ZOMBIE){
+      count++;
+    }
+    release(&p->lock);
+  }
+
+  return count;
+}
+
+// lab 1 part 2
+int
+get_ppid(struct proc *p)
+{
+  int ppid = 0;
+
+  acquire(&wait_lock);
+  ppid = p->parent->pid;
+  release(&wait_lock);
+
+  return ppid;
 }
