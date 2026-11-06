@@ -105,6 +105,13 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   int syscall_cnt;             // Syscall count per process
+#if defined(LOTTERY)
+  int ticket;
+#elif defined(STRIDE)
+  int ticket;
+  int stride;
+  int pass;
+#endif
 };
 
 // procinfo

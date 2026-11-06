@@ -26,6 +26,18 @@ extern char trampoline[]; // trampoline.S
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
+// rand()
+unsigned short lfsr = 0xACE1u;
+unsigned short bit;
+
+// lottery
+#define DEFAULT_TICKET 10000
+int total_ticket = 0;
+
+// stride
+const int stride1 = 10000;
+
+
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.
@@ -102,6 +114,16 @@ allocpid()
   return pid;
 }
 
+#if defined(STRIDE)
+static void
+client_init(struct proc *p)
+{
+  p->ticket = DEFAULT_TICKET;
+  p->stride = stride1 / p->ticket;
+  p->pass   = p->stride;
+}
+#endif
+
 // Look in the process table for an UNUSED proc.
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
@@ -125,6 +147,12 @@ found:
   p->pid = allocpid();
   p->state = USED;
   p->syscall_cnt = 0;
+#if defined(LOTTERY)
+  p->ticket = DEFAULT_TICKET;
+  total_ticket += p->ticket;
+#elif defined(STRIDE)
+  client_init(p);
+#endif
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -171,6 +199,12 @@ freeproc(struct proc *p)
   p->xstate = 0;
   p->syscall_cnt= 0;
   p->state = UNUSED;
+#if defined(LOTTERY)
+  total_ticket -= p->ticket;
+  p->ticket = DEFAULT_TICKET;
+#elif defined(STRIDE)
+  p->ticket = DEFAULT_TICKET;
+#endif
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -436,6 +470,54 @@ wait(uint64 addr)
   }
 }
 
+
+unsigned short
+rand()
+{
+  bit = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5)) & 1;
+  return lfsr = (lfsr >> 1) | (bit << 15);
+}
+
+#if defined(STRIDE)
+static struct proc*
+queue_remove_min(void)
+{
+  struct proc *p, *next_p = 0;
+  int min_pass = 0;
+
+  // Find the process with the minimum pass value.
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+
+    if(p->state == RUNNABLE &&
+        (next_p == 0 || p->pass <= min_pass)) {
+      next_p = p;
+      min_pass = p->pass;
+    }
+    release(&p->lock);
+  }
+
+  return next_p;
+}
+
+static void
+use_resource(struct proc *p, struct cpu *c)
+{
+  acquire(&p->lock);
+  // Switch to chosen process.  It is the process's job
+  // to release its lock and then reacquire it
+  // before jumping back to us.
+  p->state = RUNNING;
+  c->proc = p;
+  swtch(&c->context, &p->context);
+  release(&p->lock);
+
+  // Process is done running for now.
+  // It should have changed its p->state before coming back.
+  c->proc = 0;
+}
+#endif
+
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -453,7 +535,43 @@ scheduler(void)
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
+#if defined(LOTTERY)
+    int winning_ticket = rand() % total_ticket;
+    int sum = 0;
 
+    for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+
+      sum += p->ticket;
+      if (sum > winning_ticket) {
+        if(p->state == RUNNABLE) {
+          // Switch to chosen process.  It is the process's job
+          // to release its lock and then reacquire it
+          // before jumping back to us.
+          p->state = RUNNING;
+          c->proc = p;
+          swtch(&c->context, &p->context);
+
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
+        }
+      }
+
+      release(&p->lock);
+    }
+#elif defined(STRIDE)
+    /* allocate() */
+    p = queue_remove_min();
+
+    if (p) {
+      use_resource(p, c);
+
+      acquire(&p->lock);
+      p->pass += p->stride;
+      release(&p->lock);
+    }
+#else
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
@@ -470,6 +588,7 @@ scheduler(void)
       }
       release(&p->lock);
     }
+#endif
   }
 }
 
