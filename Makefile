@@ -141,6 +141,7 @@ UPROGS=\
 	$U/_lab1_test\
 	$U/_teststats\
 	$U/_lab2\
+	$U/_lab2_experiment\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
