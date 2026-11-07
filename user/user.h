@@ -23,7 +23,6 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-int sched_statistics(void); // Lab2 Part1: Scheduling statistics
 
 // ulib.c
 int stat(const char*, struct stat*);
@@ -50,4 +49,5 @@ int sysinfo(int); // part 1
 int procinfo(struct pinfo*); // part 2
 
 // Lab 2
+int sched_statistics(void); // Lab2 Part1: Scheduling statistics
 int sched_tickets(int);

@@ -135,7 +135,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_sysinfo] sys_sysinfo,    // lab1 sysinfo
 [SYS_procinfo] sys_procinfo,  // lab1 procinfo
 [SYS_sched_statistics] sys_sched_statistics, // Lab2 Part1 Scheduling statistics
-[SYS_procinfo] sys_sched_tickets,  // lab2
+[SYS_sched_tickets] sys_sched_tickets,  // lab2
 };
 
 int syscall_count = 0; //lab1 part1 - param for counting system call

@@ -493,7 +493,7 @@ queue_remove_min(void)
   struct proc *p, *next_p = 0;
   int min_pass = 0;
 
-  // Find the process with the minimum pass value.
+  // Find the process with the minimum pass value. O(n).
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
 
@@ -906,6 +906,10 @@ alloc_tickets(int n)
   acquire(&p->lock);
   if (n > 0 && n <= 10000) {
     p->ticket = n;
+#if defined(STRIDE)
+    p->stride = stride1 / p->ticket;
+    p->pass   = p->stride;
+#endif
   } else if (n > 10000) {
     p->ticket = DEFAULT_TICKET;
   }
