@@ -546,31 +546,56 @@ scheduler(void)
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 #if defined(LOTTERY)
-    int winning_ticket = rand() % total_ticket;
-    int sum = 0;
+    // Lab2: Calculate total tickets of RUNNABLE processes
+    uint32 total = 0;
 
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
 
-      sum += p->ticket;
-      if (sum > winning_ticket) {
-        if(p->state == RUNNABLE) {
-          // Switch to chosen process.  It is the process's job
-          // to release its lock and then reacquire it
-          // before jumping back to us.
+      if(p->state == RUNNABLE && p->ticket > 0) {
+        total += p->ticket;
+      }
+
+      release(&p->lock);
+    }
+
+    // No eligible process
+    if(total == 0) {
+      continue;
+    }
+
+     // Generate a winning ticket
+    uint32 winning_ticket =
+      (((uint32)rand() << 16) | rand()) % total;
+
+    uint32 sum = 0;
+
+    // Find the winning process
+    for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+
+      if(p->state == RUNNABLE && p->ticket > 0) {
+        sum += p->ticket;
+
+        if(sum > winning_ticket) {
+          // Switch to the winning process
           p->state = RUNNING;
           c->proc = p;
           p->sched_count++;
+
           swtch(&c->context, &p->context);
 
-          // Process is done running for now.
-          // It should have changed its p->state before coming back.
+          // Process returned to scheduler
           c->proc = 0;
+
+          release(&p->lock);
+          break;
         }
       }
 
       release(&p->lock);
     }
+
 #elif defined(STRIDE)
     /* allocate() */
     p = queue_remove_min();
