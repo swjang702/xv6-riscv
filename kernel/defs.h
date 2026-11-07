@@ -111,6 +111,7 @@ void            procdump(void);
 void            print_hello(int); // hello
 int             get_active_process_number(void);//lab1 part 1 - count state
 int             get_ppid(struct proc*); // lab1 part 2 - procinfo
+int             sched_statistics(void); // lab2 part 1 - scheduling statistics
 
 // swtch.S
 void            swtch(struct context*, struct context*);
