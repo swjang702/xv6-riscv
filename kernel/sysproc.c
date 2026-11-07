@@ -131,3 +131,11 @@ uint64 sys_procinfo(void)
 
   return 0;
 }
+
+
+ // Lab2 Part1: System call handler for scheduling statistics
+uint64
+sys_sched_statistics(void)
+{
+  return sched_statistics();
+}

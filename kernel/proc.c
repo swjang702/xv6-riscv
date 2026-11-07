@@ -147,8 +147,12 @@ found:
   p->pid = allocpid();
   p->state = USED;
   p->syscall_cnt = 0;
-#if defined(LOTTERY)
+
+  // Lab2: Initialize scheduling statistics
   p->ticket = DEFAULT_TICKET;
+  p->sched_count = 0;
+
+#if defined(LOTTERY)
   total_ticket += p->ticket;
 #elif defined(STRIDE)
   client_init(p);
@@ -197,7 +201,11 @@ freeproc(struct proc *p)
   p->chan = 0;
   p->killed = 0;
   p->xstate = 0;
-  p->syscall_cnt= 0;
+  p->syscall_cnt = 0;
+
+  // Lab2: Reset scheduling statistics
+  p->sched_count = 0;
+
   p->state = UNUSED;
 #if defined(LOTTERY)
   total_ticket -= p->ticket;
@@ -509,6 +517,8 @@ use_resource(struct proc *p, struct cpu *c)
   // before jumping back to us.
   p->state = RUNNING;
   c->proc = p;
+  // Lab2: Count scheduling events under Stride
+  p->sched_count++;
   swtch(&c->context, &p->context);
   release(&p->lock);
 
@@ -536,30 +546,56 @@ scheduler(void)
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 #if defined(LOTTERY)
-    int winning_ticket = rand() % total_ticket;
-    int sum = 0;
+    // Lab2: Calculate total tickets of RUNNABLE processes
+    uint32 total = 0;
 
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
 
-      sum += p->ticket;
-      if (sum > winning_ticket) {
-        if(p->state == RUNNABLE) {
-          // Switch to chosen process.  It is the process's job
-          // to release its lock and then reacquire it
-          // before jumping back to us.
+      if(p->state == RUNNABLE && p->ticket > 0) {
+        total += p->ticket;
+      }
+
+      release(&p->lock);
+    }
+
+    // No eligible process
+    if(total == 0) {
+      continue;
+    }
+
+     // Generate a winning ticket
+    uint32 winning_ticket =
+      (((uint32)rand() << 16) | rand()) % total;
+
+    uint32 sum = 0;
+
+    // Find the winning process
+    for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+
+      if(p->state == RUNNABLE && p->ticket > 0) {
+        sum += p->ticket;
+
+        if(sum > winning_ticket) {
+          // Switch to the winning process
           p->state = RUNNING;
           c->proc = p;
+          p->sched_count++;
+
           swtch(&c->context, &p->context);
 
-          // Process is done running for now.
-          // It should have changed its p->state before coming back.
+          // Process returned to scheduler
           c->proc = 0;
+
+          release(&p->lock);
+          break;
         }
       }
 
       release(&p->lock);
     }
+
 #elif defined(STRIDE)
     /* allocate() */
     p = queue_remove_min();
@@ -580,6 +616,10 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+
+        // Lab2: Count each scheduling event
+        p->sched_count++;
+
         swtch(&c->context, &p->context);
 
         // Process is done running for now.
@@ -801,6 +841,25 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+int
+sched_statistics(void)
+{
+  struct proc *p;
+
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+
+    if(p->state != UNUSED) {
+      printf("%d(%s): tickets: %d, ticks: %d\n",
+             p->pid, p->name, p->ticket, p->sched_count);
+    }
+
+    release(&p->lock);
+  }
+
+  return 0;
 }
 
 void
