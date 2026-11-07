@@ -107,13 +107,10 @@ struct proc {
   int syscall_cnt;             // Syscall count per process
 
   // Lab2: Scheduling statistics
-  int ticket;                  // Number of tickets owned by process
   int sched_count;             // Number of times process was scheduled
-
-#if defined(STRIDE)
+  int ticket;                  // Number of tickets owned by process
   int stride;
   int pass;
-#endif
 };
 
 // procinfo

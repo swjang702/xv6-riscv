@@ -41,3 +41,4 @@ entry("hello");
 entry("sysinfo");  # lab 1 sysinfo
 entry("procinfo"); # lab 1 procinfo
 entry("sched_statistics"); # Lab2 Part1: Scheduling statistics
+entry("sched_tickets"); # lab 2

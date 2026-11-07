@@ -896,3 +896,18 @@ get_ppid(struct proc *p)
 
   return ppid;
 }
+
+// lab 2
+void
+alloc_tickets(int n)
+{
+  struct proc *p = myproc();
+
+  acquire(&p->lock);
+  if (n > 0 && n <= 10000) {
+    p->ticket = n;
+  } else if (n > 10000) {
+    p->ticket = DEFAULT_TICKET;
+  }
+  release(&p->lock);
+}

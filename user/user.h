@@ -48,3 +48,6 @@ int hello(int); // hello
 // Lab 1
 int sysinfo(int); // part 1
 int procinfo(struct pinfo*); // part 2
+
+// Lab 2
+int sched_tickets(int);

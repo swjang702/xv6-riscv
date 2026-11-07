@@ -114,7 +114,8 @@ sys_sysinfo(void)
   return -1;
 }
 
-uint64 sys_procinfo(void)
+uint64
+sys_procinfo(void)
 {
   struct proc *p = myproc();
   struct pinfo in;
@@ -132,10 +133,18 @@ uint64 sys_procinfo(void)
   return 0;
 }
 
-
  // Lab2 Part1: System call handler for scheduling statistics
 uint64
 sys_sched_statistics(void)
 {
   return sched_statistics();
+}
+
+int
+sys_sched_tickets(void)
+{
+  int n;
+  argint(0, &n);
+  alloc_tickets(n);
+  return 0;
 }

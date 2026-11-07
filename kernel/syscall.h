@@ -24,3 +24,4 @@
 #define SYS_sysinfo 23  // lab1 sysinfo
 #define SYS_procinfo 24 // lab1 procinfo
 #define SYS_sched_statistics 25 // Lab2 Part1: Scheduling statistics
+#define SYS_sched_tickets 26 // lab2 sched_tickets

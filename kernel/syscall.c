@@ -105,6 +105,7 @@ extern uint64 sys_hello(void); // hello: declaration
 extern uint64 sys_sysinfo(void); // lab1 sysinfo
 extern uint64 sys_procinfo(void); // lab1 procinfo
 extern uint64 sys_sched_statistics(void); // Lab2 Part1 Scheduling statistics
+extern uint64 sys_sched_tickets(void); // lab2
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -134,6 +135,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_sysinfo] sys_sysinfo,    // lab1 sysinfo
 [SYS_procinfo] sys_procinfo,  // lab1 procinfo
 [SYS_sched_statistics] sys_sched_statistics, // Lab2 Part1 Scheduling statistics
+[SYS_procinfo] sys_sched_tickets,  // lab2
 };
 
 int syscall_count = 0; //lab1 part1 - param for counting system call
